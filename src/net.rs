@@ -3,20 +3,24 @@ use std::io;
 use std::io::{Read, Write};
 use std::net::{TcpStream, ToSocketAddrs};
 
+use option::TelnetOption;
+
 pub struct TelnetStream {
-    stream: TcpStream
+    stream: TcpStream,
+    options: Vec<TelnetOption>
 }
 
 impl TelnetStream {
-    pub fn new(stream: TcpStream) -> TelnetStream {
+    pub fn new(stream: TcpStream, options: Vec<TelnetOption>) -> TelnetStream {
         TelnetStream {
-            stream: stream
+            stream: stream,
+            options: options
         }
     }
 
-    pub fn connect<A: ToSocketAddrs>(addr: A) -> io::Result<TelnetStream> {
+    pub fn connect<A: ToSocketAddrs>(addr: A, options: Vec<TelnetOption>) -> io::Result<TelnetStream> {
         match TcpStream::connect(addr) {
-            Ok(stream) => Ok(TelnetStream::new(stream)),
+            Ok(stream) => Ok(TelnetStream::new(stream, options)),
             Err(e) => Err(e)
         }
     }
