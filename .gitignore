@@ -2,3 +2,4 @@
 /examples/
 **/*.rs.bk
 Cargo.lock
+.tags*

@@ -4,35 +4,40 @@ use std::io::{Read, Write};
 use std::net::{TcpStream, ToSocketAddrs};
 
 use option::TelnetOption;
+use event::TelnetEvent;
 
-pub struct TelnetStream {
+pub struct TelnetStream<H> where H: Fn(TelnetEvent) {
     stream: TcpStream,
-    options: Vec<TelnetOption>
+    options: Vec<TelnetOption>,
+    event_handler: H
 }
 
-impl TelnetStream {
-    pub fn new(stream: TcpStream, options: Vec<TelnetOption>) -> TelnetStream {
+impl<H> TelnetStream<H> where H: Fn(TelnetEvent) {
+    pub fn new(stream: TcpStream, options: Vec<TelnetOption>,
+            event_handler: H) -> TelnetStream<H> {
         TelnetStream {
             stream: stream,
-            options: options
+            options: options,
+            event_handler: event_handler
         }
     }
 
-    pub fn connect<A: ToSocketAddrs>(addr: A, options: Vec<TelnetOption>) -> io::Result<TelnetStream> {
+    pub fn connect<A: ToSocketAddrs>(addr: A, options: Vec<TelnetOption>,
+            event_handler: H) -> io::Result<TelnetStream<H>> {
         match TcpStream::connect(addr) {
-            Ok(stream) => Ok(TelnetStream::new(stream, options)),
+            Ok(stream) => Ok(TelnetStream::new(stream, options, event_handler)),
             Err(e) => Err(e)
         }
     }
 }
 
-impl Read for TelnetStream {
+impl<H> Read for TelnetStream<H> where H: Fn(TelnetEvent) {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         self.stream.read(buf)
     }
 }
 
-impl Write for TelnetStream {
+impl<H> Write for TelnetStream<H> where H: Fn(TelnetEvent) {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.stream.write(buf)
     }
@@ -42,14 +47,14 @@ impl Write for TelnetStream {
     }
 }
 
-impl<'a> Read for &'a TelnetStream {
+impl<'a, H> Read for &'a TelnetStream<H> where H: Fn(TelnetEvent) {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let mut stream_ref: &TcpStream = &self.stream;
         stream_ref.read(buf)
     }
 }
 
-impl<'a> Write for &'a TelnetStream {
+impl<'a, H> Write for &'a TelnetStream<H> where H: Fn(TelnetEvent) {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let mut stream_ref: &TcpStream = &self.stream;
         stream_ref.write(buf)

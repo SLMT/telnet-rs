@@ -1,6 +1,8 @@
 
-mod net;
 mod option;
+mod event;
+mod net;
 
-pub use net::*;
 pub use option::*;
+pub use event::*;
+pub use net::*;
