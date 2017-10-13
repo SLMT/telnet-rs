@@ -1,68 +1,58 @@
 
 use std::io;
-use std::io::{Read, Write};
+use std::io::Read;
 use std::net::{TcpStream, ToSocketAddrs};
 
 use option::TelnetOption;
 use event::TelnetEvent;
 
-pub struct TelnetStream<H> where H: Fn(TelnetEvent) {
+pub struct TelnetStream {
     stream: TcpStream,
     options: Vec<TelnetOption>,
-    event_handler: H
+    buffer: Box<[u8]>,
+    next_start: usize, // the position next start to read
+    buffered_size: usize
 }
 
-impl<H> TelnetStream<H> where H: Fn(TelnetEvent) {
-    pub fn new(stream: TcpStream, options: Vec<TelnetOption>,
-            event_handler: H) -> TelnetStream<H> {
+impl TelnetStream {
+    pub fn new(stream: TcpStream, options: Vec<TelnetOption>, buf_size: usize) -> TelnetStream {
+        // Make sure the buffer size always >= 1
+        let actual_size = if buf_size == 0 { 1 } else { buf_size };
+
         TelnetStream {
             stream: stream,
             options: options,
-            event_handler: event_handler
+            buffer: vec![0; actual_size].into_boxed_slice(),
+            next_start: 0,
+            buffered_size: 0
         }
     }
 
-    pub fn connect<A: ToSocketAddrs>(addr: A, options: Vec<TelnetOption>,
-            event_handler: H) -> io::Result<TelnetStream<H>> {
+    pub fn connect<A: ToSocketAddrs>(addr: A, options: Vec<TelnetOption>, buf_size: usize) -> io::Result<TelnetStream> {
         match TcpStream::connect(addr) {
-            Ok(stream) => Ok(TelnetStream::new(stream, options, event_handler)),
+            Ok(stream) => Ok(TelnetStream::new(stream, options, buf_size)),
             Err(e) => Err(e)
         }
     }
-}
 
-impl<H> Read for TelnetStream<H> where H: Fn(TelnetEvent) {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.stream.read(buf)
-    }
-}
+    pub fn read_event<'a>(&'a mut self) -> io::Result<TelnetEvent<'a>> {
+        // No more data in the buffer to be processed
+        if self.next_start >= self.buffered_size {
+            match self.stream.read(&mut self.buffer) {
+                Ok(size) => {
+                    self.buffered_size = size;
+                    self.next_start = 0;
+                },
+                Err(e) => return Err(e)
+            }
+        }
 
-impl<H> Write for TelnetStream<H> where H: Fn(TelnetEvent) {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.stream.write(buf)
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        self.stream.flush()
-    }
-}
-
-impl<'a, H> Read for &'a TelnetStream<H> where H: Fn(TelnetEvent) {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let mut stream_ref: &TcpStream = &self.stream;
-        stream_ref.read(buf)
-    }
-}
-
-impl<'a, H> Write for &'a TelnetStream<H> where H: Fn(TelnetEvent) {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let mut stream_ref: &TcpStream = &self.stream;
-        stream_ref.write(buf)
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        let mut stream_ref: &TcpStream = &self.stream;
-        stream_ref.flush()
+        // Return the data
+        let start = self.next_start;
+        let end = self.buffered_size;
+        let event = TelnetEvent::DataReceived(&self.buffer[start .. end]);
+        self.next_start = self.buffered_size;
+        return Ok(event);
     }
 }
 
