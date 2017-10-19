@@ -150,20 +150,28 @@ impl TelnetConnection {
 
                     match state {
                         ProcessState::Will => {
-                            self.event_queue.push_event(TelnetEvent::Will(opt));
+                            self.event_queue.push_event(
+                                TelnetEvent::NegotiationReceived(
+                                    NegotiationAction::Will, opt));
                             self.negotiation_sm.receive_will(&mut self.event_queue,
                                 &self.stream, opt, opt_config);
                         },
                         ProcessState::Wont => {
-                            self.event_queue.push_event(TelnetEvent::Wont(opt));
+                            self.event_queue.push_event(
+                                TelnetEvent::NegotiationReceived(
+                                    NegotiationAction::Wont, opt));
                             // TODO: Handle the negotiation
                         },
                         ProcessState::Do => {
-                            self.event_queue.push_event(TelnetEvent::Do(opt));
+                            self.event_queue.push_event(
+                                TelnetEvent::NegotiationReceived(
+                                    NegotiationAction::Do, opt));
                             // TODO: Handle the negotiation
                         },
                         ProcessState::Dont => {
-                            self.event_queue.push_event(TelnetEvent::Dont(opt));
+                            self.event_queue.push_event(
+                                TelnetEvent::NegotiationReceived(
+                                    NegotiationAction::Dont, opt));
                             // TODO: Handle the negotiation
                         },
                         _ => {} // Do nothing
@@ -194,7 +202,7 @@ impl TelnetConnection {
 
                         // Return the option
                         let sb_data_end = current - 1;
-                        self.event_queue.push_event(TelnetEvent::Subnegotiation(
+                        self.event_queue.push_event(TelnetEvent::SBReceived(
                             opt, Box::from(&self.buffer[sb_data_start .. sb_data_end])));
                     }
                 },

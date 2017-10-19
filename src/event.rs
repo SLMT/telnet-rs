@@ -2,16 +2,15 @@
 use std::collections::LinkedList;
 
 use option::TelnetOption;
+use negotiation::NegotiationAction;
 
 #[derive(Debug)]
 pub enum TelnetEvent {
     DataReceived(Box<[u8]>),
     UnknownIAC(u8),
-    Will(TelnetOption),
-    Wont(TelnetOption),
-    Do(TelnetOption),
-    Dont(TelnetOption),
-    Subnegotiation(u8, Box<[u8]>), // XXX: Temp
+    NegotiationReceived(NegotiationAction, TelnetOption),
+    NeogitationSent(NegotiationAction, TelnetOption),
+    SBReceived(u8, Box<[u8]>), // XXX: Temp
     ItShouldNotBeHere(String), // please contact the developer
     Error(String) // error message
 }

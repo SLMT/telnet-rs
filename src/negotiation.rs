@@ -7,6 +7,7 @@ use event::{TelnetEvent, TelnetEventQueue};
 use net::TelnetStream;
 use byte::*;
 
+#[derive(Debug)]
 pub enum NegotiationAction {
     Will, Wont, Do, Dont
 }
@@ -57,8 +58,12 @@ impl NegotiationSM {
                 if opt_config.him {
                     self.set_state(false, req_opt, State::Yes);
                     stream.negotiate(NegotiationAction::Do, req_opt);
+                    queue.push_event(TelnetEvent::NeogitationSent(
+                        NegotiationAction::Do, req_opt));
                 } else {
                     stream.negotiate(NegotiationAction::Dont, req_opt);
+                    queue.push_event(TelnetEvent::NeogitationSent(
+                        NegotiationAction::Dont, req_opt));
                 }
             },
             State::Yes => {}, // Ingore
@@ -76,6 +81,8 @@ impl NegotiationSM {
             State::WantYesOpposite => {
                 self.set_state(false, req_opt, State::WantNoEmpty);
                 stream.negotiate(NegotiationAction::Dont, req_opt);
+                queue.push_event(TelnetEvent::NeogitationSent(
+                    NegotiationAction::Dont, req_opt));
             },
         }
     }
