@@ -24,8 +24,8 @@ enum ProcessState {
     NormalData,
     IAC,
     SB,
-    SBData(u8, usize),    // (option byte, start location of option data)
-    SBDataIAC(u8, usize), // (option byte, start location of option data)
+    SBData(TelnetOption, usize),    // (option, start location of option data)
+    SBDataIAC(TelnetOption, usize), // (option, start location of option data)
     Will, Wont,
     Do, Dont
 }
@@ -186,7 +186,8 @@ impl TelnetConnection {
 
                 // Start subnegotiation
                 ProcessState::SB => {
-                    state = ProcessState::SBData(byte, current + 1);
+                    let opt = TelnetOption::parse(byte);
+                    state = ProcessState::SBData(opt, current + 1);
                 },
 
                 // Subnegotiation's data

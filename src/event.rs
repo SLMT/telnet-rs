@@ -10,7 +10,7 @@ pub enum TelnetEvent {
     UnknownIAC(u8),
     NegotiationReceived(NegotiationAction, TelnetOption),
     NeogitationSent(NegotiationAction, TelnetOption),
-    SBReceived(u8, Box<[u8]>), // XXX: Temp
+    SBReceived(TelnetOption, Box<[u8]>), // XXX: Temp
     ItShouldNotBeHere(String), // please contact the developer
     Error(String) // error message
 }
