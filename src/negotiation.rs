@@ -100,6 +100,36 @@ impl NegotiationSM {
         }
     }
 
+    pub fn receive_do(&mut self, queue: &mut TelnetEventQueue,
+            stream: &TelnetStream, req_opt: TelnetOption, opt_config: &TelnetOptionConfig) {
+        match self.get_state(true, req_opt) {
+            State::No => {
+                if opt_config.him {
+                    self.set_state(true, req_opt, State::Yes);
+                    stream.negotiate(NegotiationAction::Will, req_opt, queue);
+                } else {
+                    stream.negotiate(NegotiationAction::Wont, req_opt, queue);
+                }
+            },
+            State::Yes => {}, // Ingore
+            State::WantNoEmpty => {
+                queue.push_event(TelnetEvent::Error(format!("WONT answered by DO")));
+                self.set_state(true, req_opt, State::No);
+            },
+            State::WantNoOpposite => {
+                queue.push_event(TelnetEvent::Error(format!("WONT answered by DO")));
+                self.set_state(true, req_opt, State::Yes);
+            },
+            State::WantYesEmpty => {
+                self.set_state(true, req_opt, State::Yes);
+            },
+            State::WantYesOpposite => {
+                self.set_state(true, req_opt, State::WantNoEmpty);
+                stream.negotiate(NegotiationAction::Wont, req_opt, queue);
+            },
+        }
+    }
+
     fn set_state(&mut self, is_us: bool, opt: TelnetOption,
             new_state: State) {
         let opt_state = self.map.entry(opt).or_insert(OptState {
