@@ -160,7 +160,8 @@ impl TelnetConnection {
                             self.event_queue.push_event(
                                 TelnetEvent::NegotiationReceived(
                                     NegotiationAction::Wont, opt));
-                            // TODO: Handle the negotiation
+                            self.negotiation_sm.receive_wont(&mut self.event_queue,
+                                &self.stream, opt);
                         },
                         ProcessState::Do => {
                             self.event_queue.push_event(

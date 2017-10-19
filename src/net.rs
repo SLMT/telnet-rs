@@ -6,6 +6,7 @@ use std::net::{TcpStream, ToSocketAddrs};
 use negotiation::NegotiationAction;
 use option::TelnetOption;
 use byte::*;
+use event::{TelnetEvent, TelnetEventQueue};
 
 pub struct TelnetStream {
     stream: TcpStream
@@ -26,10 +27,12 @@ impl TelnetStream {
         }
     }
 
-    pub fn negotiate(&self, action: NegotiationAction, opt: TelnetOption) {
+    pub fn negotiate(&self, action: NegotiationAction, opt: TelnetOption,
+            queue: &mut TelnetEventQueue) {
         let send_buf = [BYTE_IAC, action.to_byte(), opt.to_byte()];
         let mut stream: &TcpStream = &(self.stream);
         stream.write(&send_buf).unwrap();
+        queue.push_event(TelnetEvent::NeogitationSent(action, opt));
     }
 }
 

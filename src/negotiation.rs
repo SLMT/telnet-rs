@@ -51,19 +51,13 @@ impl NegotiationSM {
 
     pub fn receive_will(&mut self, queue: &mut TelnetEventQueue,
             stream: &TelnetStream, req_opt: TelnetOption, opt_config: &TelnetOptionConfig) {
-
-        // Match accroding the condition
         match self.get_state(false, req_opt) {
             State::No => {
                 if opt_config.him {
                     self.set_state(false, req_opt, State::Yes);
-                    stream.negotiate(NegotiationAction::Do, req_opt);
-                    queue.push_event(TelnetEvent::NeogitationSent(
-                        NegotiationAction::Do, req_opt));
+                    stream.negotiate(NegotiationAction::Do, req_opt, queue);
                 } else {
-                    stream.negotiate(NegotiationAction::Dont, req_opt);
-                    queue.push_event(TelnetEvent::NeogitationSent(
-                        NegotiationAction::Dont, req_opt));
+                    stream.negotiate(NegotiationAction::Dont, req_opt, queue);
                 }
             },
             State::Yes => {}, // Ingore
@@ -80,9 +74,28 @@ impl NegotiationSM {
             },
             State::WantYesOpposite => {
                 self.set_state(false, req_opt, State::WantNoEmpty);
-                stream.negotiate(NegotiationAction::Dont, req_opt);
-                queue.push_event(TelnetEvent::NeogitationSent(
-                    NegotiationAction::Dont, req_opt));
+                stream.negotiate(NegotiationAction::Dont, req_opt, queue);
+            },
+        }
+    }
+
+    pub fn receive_wont(&mut self, queue: &mut TelnetEventQueue,
+            stream: &TelnetStream, req_opt: TelnetOption) {
+        match self.get_state(false, req_opt) {
+            State::No => {}, // Ingore
+            State::Yes => {
+                self.set_state(false, req_opt, State::No);
+                stream.negotiate(NegotiationAction::Dont, req_opt, queue);
+            },
+            State::WantNoEmpty => {
+                self.set_state(false, req_opt, State::No);
+            },
+            State::WantNoOpposite => {
+                self.set_state(false, req_opt, State::WantYesEmpty);
+                stream.negotiate(NegotiationAction::Do, req_opt, queue);
+            },
+            State::WantYesEmpty | State::WantYesOpposite => {
+                self.set_state(false, req_opt, State::No);
             },
         }
     }
