@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 
 // For debuggin and using HashMaps
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
@@ -155,7 +156,45 @@ impl TelnetOption {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct TelnetOptionConfig {
+struct OptionConfig {
     pub us: bool,
     pub him: bool
+}
+
+pub struct TelnetOptionConfigs {
+    configs: HashMap<TelnetOption, OptionConfig>,
+    default: OptionConfig
+}
+
+impl TelnetOptionConfigs {
+    pub fn new() -> TelnetOptionConfigs {
+        TelnetOptionConfigs {
+            configs: HashMap::new(),
+            default: OptionConfig {
+                us: false,
+                him: false
+            }
+        }
+    }
+
+    pub fn add_config(&mut self, opt: TelnetOption, allow_us: bool, allow_him: bool) {
+        self.configs.insert(opt, OptionConfig {
+            us: allow_us,
+            him: allow_him
+        });
+    }
+
+    pub fn is_us_allowed(&self, opt: &TelnetOption) -> bool {
+        match self.configs.get(&opt) {
+            Some(c) => c.us,
+            None => self.default.us
+        }
+    }
+
+    pub fn is_him_allowed(&self, opt: &TelnetOption) -> bool {
+        match self.configs.get(&opt) {
+            Some(c) => c.him,
+            None => self.default.him
+        }
+    }
 }

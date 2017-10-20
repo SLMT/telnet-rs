@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use option::{TelnetOption, TelnetOptionConfig};
+use option::TelnetOption;
 use event::{TelnetEvent, TelnetEventQueue};
 use net::TelnetStream;
 use byte::*;
@@ -50,10 +50,10 @@ impl NegotiationSM {
     }
 
     pub fn receive_will(&mut self, queue: &mut TelnetEventQueue,
-            stream: &TelnetStream, req_opt: TelnetOption, opt_config: &TelnetOptionConfig) {
+            stream: &TelnetStream, req_opt: TelnetOption, is_him_allowed: bool) {
         match self.get_state(false, req_opt) {
             State::No => {
-                if opt_config.him {
+                if is_him_allowed {
                     self.set_state(false, req_opt, State::Yes);
                     stream.negotiate(NegotiationAction::Do, req_opt, queue);
                 } else {
@@ -101,10 +101,10 @@ impl NegotiationSM {
     }
 
     pub fn receive_do(&mut self, queue: &mut TelnetEventQueue,
-            stream: &TelnetStream, req_opt: TelnetOption, opt_config: &TelnetOptionConfig) {
+            stream: &TelnetStream, req_opt: TelnetOption, is_him_allowed: bool) {
         match self.get_state(true, req_opt) {
             State::No => {
-                if opt_config.him {
+                if is_him_allowed {
                     self.set_state(true, req_opt, State::Yes);
                     stream.negotiate(NegotiationAction::Will, req_opt, queue);
                 } else {
@@ -150,6 +150,8 @@ impl NegotiationSM {
             },
         }
     }
+
+    // TODO: Add sending methods
 
     fn set_state(&mut self, is_us: bool, opt: TelnetOption,
             new_state: State) {

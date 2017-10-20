@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::io;
 use std::io::Read;
 use std::net::{TcpStream, ToSocketAddrs};
@@ -6,7 +5,7 @@ use std::net::{TcpStream, ToSocketAddrs};
 use net::TelnetStream;
 use event::{TelnetEvent, TelnetEventQueue};
 use negotiation::{NegotiationAction, NegotiationSM};
-use option::{TelnetOption, TelnetOptionConfig};
+use option::{TelnetOption, TelnetOptionConfigs};
 use byte::*;
 
 #[derive(Debug)]
@@ -22,7 +21,7 @@ enum ProcessState {
 
 pub struct TelnetConnection {
     stream: TelnetStream,
-    option_configs: HashMap<TelnetOption, TelnetOptionConfig>,
+    option_configs: TelnetOptionConfigs,
     event_queue: TelnetEventQueue,
 
     // Buffer
@@ -36,7 +35,7 @@ pub struct TelnetConnection {
 }
 
 impl TelnetConnection {
-    pub fn new(tcp_stream: TcpStream, option_configs: HashMap<TelnetOption, TelnetOptionConfig>,
+    pub fn new(tcp_stream: TcpStream, option_configs: TelnetOptionConfigs,
             buf_size: usize) -> TelnetConnection {
         // Make sure the buffer size always >= 1
         let actual_size = if buf_size == 0 { 1 } else { buf_size };
@@ -53,9 +52,8 @@ impl TelnetConnection {
         }
     }
 
-    pub fn connect<A: ToSocketAddrs>(addr: A,
-            option_configs: HashMap<TelnetOption, TelnetOptionConfig>, buf_size: usize) ->
-            io::Result<TelnetConnection> {
+    pub fn connect<A: ToSocketAddrs>(addr: A, option_configs: TelnetOptionConfigs,
+            buf_size: usize) -> io::Result<TelnetConnection> {
         match TcpStream::connect(addr) {
             Ok(stream) => Ok(TelnetConnection::new(stream, option_configs, buf_size)),
             Err(e) => Err(e)
@@ -150,10 +148,7 @@ impl TelnetConnection {
                         ProcessState::Do | ProcessState::Dont => {
 
                     let opt = TelnetOption::parse(byte);
-                    let opt_config = match self.option_configs.get(&opt) {
-                        Some(config) => config,
-                        None => &TelnetOptionConfig { us: false, him: false }
-                    };
+                    let is_him_allowed = self.option_configs.is_him_allowed(&opt);
 
                     match state {
                         ProcessState::Will => {
@@ -161,7 +156,7 @@ impl TelnetConnection {
                                 TelnetEvent::NegotiationReceived(
                                     NegotiationAction::Will, opt));
                             self.negotiation_sm.receive_will(&mut self.event_queue,
-                                &self.stream, opt, opt_config);
+                                &self.stream, opt, is_him_allowed);
                         },
                         ProcessState::Wont => {
                             self.event_queue.push_event(
@@ -175,7 +170,7 @@ impl TelnetConnection {
                                 TelnetEvent::NegotiationReceived(
                                     NegotiationAction::Do, opt));
                             self.negotiation_sm.receive_do(&mut self.event_queue,
-                                &self.stream, opt, opt_config);
+                                &self.stream, opt, is_him_allowed);
                         },
                         ProcessState::Dont => {
                             self.event_queue.push_event(
