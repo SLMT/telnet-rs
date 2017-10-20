@@ -27,7 +27,14 @@ impl TelnetStream {
         }
     }
 
-    pub fn negotiate(&self, action: NegotiationAction, opt: TelnetOption,
+    pub fn send_iac(&self, byte: u8) {
+        let buf = [BYTE_IAC, byte];
+        let mut stream: &TcpStream = &(self.stream);
+        stream.write(&buf).unwrap();
+        stream.flush().unwrap();
+    }
+
+    pub fn send_negotiation(&self, action: NegotiationAction, opt: TelnetOption,
             queue: &mut TelnetEventQueue) {
         let send_buf = [BYTE_IAC, action.to_byte(), opt.to_byte()];
         let mut stream: &TcpStream = &(self.stream);

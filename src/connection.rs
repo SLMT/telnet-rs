@@ -5,7 +5,7 @@ use std::net::{TcpStream, ToSocketAddrs};
 use net::TelnetStream;
 use event::{TelnetEvent, TelnetEventQueue};
 use negotiation::{NegotiationAction, NegotiationSM};
-use option::{TelnetOption, TelnetOptionConfigs};
+use option::{TelnetOption, TelnetOptionConfigs, OptionConfig};
 use byte::*;
 
 #[derive(Debug)]
@@ -40,7 +40,7 @@ impl TelnetConnection {
         // Make sure the buffer size always >= 1
         let actual_size = if buf_size == 0 { 1 } else { buf_size };
 
-        TelnetConnection {
+        let mut connection = TelnetConnection {
             stream: TelnetStream::new(tcp_stream),
             option_configs: option_configs,
             event_queue: TelnetEventQueue::new(),
@@ -49,7 +49,12 @@ impl TelnetConnection {
             process_buffer: vec![0; actual_size].into_boxed_slice(),
             process_buffered_size: 0,
             negotiation_sm: NegotiationSM::new()
-        }
+        };
+
+        // TODO: Maybe provide an option to enable this ?
+        connection.init_negotiation();
+
+        connection
     }
 
     pub fn connect<A: ToSocketAddrs>(addr: A, option_configs: TelnetOptionConfigs,
@@ -75,6 +80,48 @@ impl TelnetConnection {
 
         // Return an event
         Ok(self.event_queue.take_event().unwrap())
+    }
+
+    pub fn send_iac(&self, byte: u8) {
+        self.stream.send_iac(byte);
+    }
+
+    pub fn send_negotiation(&mut self, action: NegotiationAction, opt: TelnetOption) {
+        self.stream.send_negotiation(action, opt, &mut self.event_queue);
+    }
+
+    pub fn inform_enabled(&mut self, opt: TelnetOption) {
+        self.option_configs.set_local_supported(opt, true);
+        self.negotiation_sm.inform_enabled(&mut self.event_queue, &self.stream, opt);
+    }
+
+    pub fn inform_disable(&mut self, opt: TelnetOption) {
+        self.option_configs.set_local_supported(opt, false);
+        self.negotiation_sm.inform_disable(&mut self.event_queue, &self.stream, opt);
+    }
+
+    pub fn ask_to_enable(&mut self, opt: TelnetOption) {
+        self.option_configs.set_remote_allowed(opt, true);
+        self.negotiation_sm.ask_to_enable(&mut self.event_queue, &self.stream, opt);
+    }
+
+    pub fn ask_to_disable(&mut self, opt: TelnetOption) {
+        self.option_configs.set_remote_allowed(opt, false);
+        self.negotiation_sm.ask_to_disable(&mut self.event_queue, &self.stream, opt);
+    }
+
+    fn init_negotiation(&mut self) {
+        for (opt, config) in self.option_configs.iter() {
+            if config.local_support {
+                self.negotiation_sm.inform_enabled(&mut self.event_queue,
+                    &self.stream, opt.clone());
+            }
+
+            if config.allow_remote {
+                self.negotiation_sm.ask_to_enable(&mut self.event_queue,
+                    &self.stream, opt.clone());
+            }
+        }
     }
 
     fn process(&mut self) {
@@ -148,15 +195,16 @@ impl TelnetConnection {
                         ProcessState::Do | ProcessState::Dont => {
 
                     let opt = TelnetOption::parse(byte);
-                    let is_him_allowed = self.option_configs.is_him_allowed(&opt);
 
                     match state {
                         ProcessState::Will => {
                             self.event_queue.push_event(
                                 TelnetEvent::NegotiationReceived(
                                     NegotiationAction::Will, opt));
+
+                            let is_remote_allowed = self.option_configs.is_remote_allowed(&opt);
                             self.negotiation_sm.receive_will(&mut self.event_queue,
-                                &self.stream, opt, is_him_allowed);
+                                &self.stream, opt, is_remote_allowed);
                         },
                         ProcessState::Wont => {
                             self.event_queue.push_event(
@@ -169,8 +217,10 @@ impl TelnetConnection {
                             self.event_queue.push_event(
                                 TelnetEvent::NegotiationReceived(
                                     NegotiationAction::Do, opt));
+
+                            let is_local_supported = self.option_configs.is_local_supported(&opt);
                             self.negotiation_sm.receive_do(&mut self.event_queue,
-                                &self.stream, opt, is_him_allowed);
+                                &self.stream, opt, is_local_supported);
                         },
                         ProcessState::Dont => {
                             self.event_queue.push_event(

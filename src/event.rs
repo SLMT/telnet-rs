@@ -8,9 +8,17 @@ use negotiation::NegotiationAction;
 pub enum TelnetEvent {
     DataReceived(Box<[u8]>),
     UnknownIAC(u8),
+    RemoteEnabled(TelnetOption),
+    RemoteDisabled(TelnetOption),
+    LocalShouldEnable(TelnetOption),
+    LocalShouldDisable(TelnetOption),
+    SBReceived(TelnetOption, Box<[u8]>),
+
+    // Debug
     NegotiationReceived(NegotiationAction, TelnetOption),
     NeogitationSent(NegotiationAction, TelnetOption),
-    SBReceived(TelnetOption, Box<[u8]>), // XXX: Temp
+
+    // Error
     ItShouldNotBeHere(String), // please contact the developer
     Error(String) // error message
 }

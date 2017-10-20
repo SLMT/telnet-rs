@@ -9,3 +9,4 @@ This library implements the following RFCs:
 ## TODOS
 
 - `TelnetListener` (similar to `TCPListener`)
+- Proxy mode

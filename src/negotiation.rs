@@ -50,32 +50,36 @@ impl NegotiationSM {
     }
 
     pub fn receive_will(&mut self, queue: &mut TelnetEventQueue,
-            stream: &TelnetStream, req_opt: TelnetOption, is_him_allowed: bool) {
+            stream: &TelnetStream, req_opt: TelnetOption, is_remote_allowed: bool) {
         match self.get_state(false, req_opt) {
             State::No => {
-                if is_him_allowed {
+                if is_remote_allowed {
                     self.set_state(false, req_opt, State::Yes);
-                    stream.negotiate(NegotiationAction::Do, req_opt, queue);
+                    stream.send_negotiation(NegotiationAction::Do, req_opt, queue);
+                    queue.push_event(TelnetEvent::RemoteEnabled(req_opt));
                 } else {
-                    stream.negotiate(NegotiationAction::Dont, req_opt, queue);
+                    stream.send_negotiation(NegotiationAction::Dont, req_opt, queue);
                 }
             },
             State::Yes => {}, // Ingore
             State::WantNoEmpty => {
                 queue.push_event(TelnetEvent::Error(format!("DONT answered by WILL")));
                 self.set_state(false, req_opt, State::No);
+                queue.push_event(TelnetEvent::RemoteDisabled(req_opt));
             },
             State::WantNoOpposite => {
                 queue.push_event(TelnetEvent::Error(format!("DONT answered by WILL")));
                 self.set_state(false, req_opt, State::Yes);
+                queue.push_event(TelnetEvent::RemoteEnabled(req_opt));
             },
             State::WantYesEmpty => {
                 self.set_state(false, req_opt, State::Yes);
+                queue.push_event(TelnetEvent::RemoteEnabled(req_opt));
             },
             State::WantYesOpposite => {
                 self.set_state(false, req_opt, State::WantNoEmpty);
-                stream.negotiate(NegotiationAction::Dont, req_opt, queue);
-            },
+                stream.send_negotiation(NegotiationAction::Dont, req_opt, queue);
+            }
         }
     }
 
@@ -85,48 +89,55 @@ impl NegotiationSM {
             State::No => {}, // Ingore
             State::Yes => {
                 self.set_state(false, req_opt, State::No);
-                stream.negotiate(NegotiationAction::Dont, req_opt, queue);
+                stream.send_negotiation(NegotiationAction::Dont, req_opt, queue);
+                queue.push_event(TelnetEvent::RemoteDisabled(req_opt));
             },
             State::WantNoEmpty => {
                 self.set_state(false, req_opt, State::No);
+                queue.push_event(TelnetEvent::RemoteDisabled(req_opt));
             },
             State::WantNoOpposite => {
                 self.set_state(false, req_opt, State::WantYesEmpty);
-                stream.negotiate(NegotiationAction::Do, req_opt, queue);
+                stream.send_negotiation(NegotiationAction::Do, req_opt, queue);
             },
             State::WantYesEmpty | State::WantYesOpposite => {
                 self.set_state(false, req_opt, State::No);
-            },
+                queue.push_event(TelnetEvent::RemoteDisabled(req_opt));
+            }
         }
     }
 
     pub fn receive_do(&mut self, queue: &mut TelnetEventQueue,
-            stream: &TelnetStream, req_opt: TelnetOption, is_him_allowed: bool) {
+            stream: &TelnetStream, req_opt: TelnetOption, is_local_supported: bool) {
         match self.get_state(true, req_opt) {
             State::No => {
-                if is_him_allowed {
+                if is_local_supported {
                     self.set_state(true, req_opt, State::Yes);
-                    stream.negotiate(NegotiationAction::Will, req_opt, queue);
+                    stream.send_negotiation(NegotiationAction::Will, req_opt, queue);
+                    queue.push_event(TelnetEvent::LocalShouldEnable(req_opt));
                 } else {
-                    stream.negotiate(NegotiationAction::Wont, req_opt, queue);
+                    stream.send_negotiation(NegotiationAction::Wont, req_opt, queue);
                 }
             },
             State::Yes => {}, // Ingore
             State::WantNoEmpty => {
                 queue.push_event(TelnetEvent::Error(format!("WONT answered by DO")));
                 self.set_state(true, req_opt, State::No);
+                queue.push_event(TelnetEvent::LocalShouldDisable(req_opt));
             },
             State::WantNoOpposite => {
                 queue.push_event(TelnetEvent::Error(format!("WONT answered by DO")));
                 self.set_state(true, req_opt, State::Yes);
+                queue.push_event(TelnetEvent::LocalShouldEnable(req_opt));
             },
             State::WantYesEmpty => {
                 self.set_state(true, req_opt, State::Yes);
+                queue.push_event(TelnetEvent::LocalShouldEnable(req_opt));
             },
             State::WantYesOpposite => {
                 self.set_state(true, req_opt, State::WantNoEmpty);
-                stream.negotiate(NegotiationAction::Wont, req_opt, queue);
-            },
+                stream.send_negotiation(NegotiationAction::Wont, req_opt, queue);
+            }
         }
     }
 
@@ -136,22 +147,129 @@ impl NegotiationSM {
             State::No => {}, // Ingore
             State::Yes => {
                 self.set_state(true, req_opt, State::No);
-                stream.negotiate(NegotiationAction::Wont, req_opt, queue);
+                stream.send_negotiation(NegotiationAction::Wont, req_opt, queue);
+                queue.push_event(TelnetEvent::LocalShouldDisable(req_opt));
             },
             State::WantNoEmpty => {
                 self.set_state(true, req_opt, State::No);
+                queue.push_event(TelnetEvent::LocalShouldDisable(req_opt));
             },
             State::WantNoOpposite => {
                 self.set_state(true, req_opt, State::WantYesEmpty);
-                stream.negotiate(NegotiationAction::Will, req_opt, queue);
+                stream.send_negotiation(NegotiationAction::Will, req_opt, queue);
             },
             State::WantYesEmpty | State::WantYesOpposite => {
                 self.set_state(true, req_opt, State::No);
-            },
+                queue.push_event(TelnetEvent::LocalShouldDisable(req_opt));
+            }
         }
     }
 
-    // TODO: Add sending methods
+    pub fn inform_enabled(&mut self, queue: &mut TelnetEventQueue,
+            stream: &TelnetStream, req_opt: TelnetOption) {
+        match self.get_state(true, req_opt) {
+            State::No => {
+                self.set_state(true, req_opt, State::WantYesEmpty);
+                stream.send_negotiation(NegotiationAction::Will, req_opt, queue);
+            },
+            State::Yes => {
+                queue.push_event(TelnetEvent::Error(
+                    format!("Option: {:?} is already enabled", req_opt)));
+            },
+            State::WantNoEmpty => {
+                self.set_state(true, req_opt, State::WantNoOpposite);
+            },
+            State::WantNoOpposite => {
+                queue.push_event(TelnetEvent::Error(format!("Already queued an enable request")));
+            },
+            State::WantYesEmpty => {
+                queue.push_event(TelnetEvent::Error(format!("Already negotiating for enable")));
+            },
+            State::WantYesOpposite => {
+                self.set_state(true, req_opt, State::WantYesEmpty);
+            }
+        }
+    }
+
+    pub fn inform_disable(&mut self, queue: &mut TelnetEventQueue,
+            stream: &TelnetStream, req_opt: TelnetOption) {
+        match self.get_state(true, req_opt) {
+            State::No => {
+                queue.push_event(TelnetEvent::Error(
+                    format!("Option: {:?} is already disabled", req_opt)));
+            },
+            State::Yes => {
+                self.set_state(true, req_opt, State::WantNoEmpty);
+                stream.send_negotiation(NegotiationAction::Wont, req_opt, queue);
+            },
+            State::WantNoEmpty => {
+                queue.push_event(TelnetEvent::Error(format!("Already negotiating for disable")));
+            },
+            State::WantNoOpposite => {
+                self.set_state(true, req_opt, State::WantNoEmpty);
+            },
+            State::WantYesEmpty => {
+                self.set_state(true, req_opt, State::WantYesOpposite);
+            },
+            State::WantYesOpposite => {
+                queue.push_event(TelnetEvent::Error(format!("Already queued an disable request")));
+            }
+        }
+    }
+
+    pub fn ask_to_enable(&mut self, queue: &mut TelnetEventQueue,
+            stream: &TelnetStream, req_opt: TelnetOption) {
+        match self.get_state(false, req_opt) {
+            State::No => {
+                self.set_state(false, req_opt, State::WantYesEmpty);
+                stream.send_negotiation(NegotiationAction::Do, req_opt, queue);
+            },
+            State::Yes => {
+                queue.push_event(TelnetEvent::Error(
+                    format!("Option: {:?} is already enabled", req_opt)));
+            },
+            State::WantNoEmpty => {
+                self.set_state(false, req_opt, State::WantNoOpposite);
+            },
+            State::WantNoOpposite => {
+                queue.push_event(TelnetEvent::Error(format!("Already queued an enable request")));
+            },
+            State::WantYesEmpty => {
+                queue.push_event(TelnetEvent::Error(format!("Already negotiating for enable")));
+            },
+            State::WantYesOpposite => {
+                self.set_state(false, req_opt, State::WantYesEmpty);
+            }
+        }
+    }
+
+    pub fn ask_to_disable(&mut self, queue: &mut TelnetEventQueue,
+            stream: &TelnetStream, req_opt: TelnetOption) {
+        match self.get_state(false, req_opt) {
+            State::No => {
+                queue.push_event(TelnetEvent::Error(
+                    format!("Option: {:?} is already disabled", req_opt)));
+            },
+            State::Yes => {
+                self.set_state(false, req_opt, State::WantNoEmpty);
+                stream.send_negotiation(NegotiationAction::Dont, req_opt, queue);
+            },
+            State::WantNoEmpty => {
+                queue.push_event(TelnetEvent::Error(format!("Already negotiating for disable")));
+            },
+            State::WantNoOpposite => {
+                self.set_state(false, req_opt, State::WantNoEmpty);
+            },
+            State::WantYesEmpty => {
+                self.set_state(false, req_opt, State::WantYesOpposite);
+            },
+            State::WantYesOpposite => {
+                queue.push_event(TelnetEvent::Error(format!("Already queued an disable request")));
+            }
+        }
+    }
+
+    // TODO: States check for users
 
     fn set_state(&mut self, is_us: bool, opt: TelnetOption,
             new_state: State) {
