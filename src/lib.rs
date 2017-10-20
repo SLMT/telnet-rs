@@ -89,9 +89,6 @@ impl TelnetConnection {
         Ok(self.event_queue.take_event().unwrap())
     }
 
-    // TODO: Unhandled cases:
-    // IAC IAC
-    // IAC SB IAC
     fn process(&mut self) {
         let mut current = 0;
         let mut state = ProcessState::NormalData;
@@ -216,7 +213,7 @@ impl TelnetConnection {
                         state = ProcessState::SBDataIAC(opt, data_start);
                     }
 
-                    // XXX: We need to consider the case that a SB Data
+                    // XXX: We may need to consider the case that a SB Data
                     // sequence may exceed this buffer
                 },
 
@@ -247,15 +244,17 @@ impl TelnetConnection {
                             // Update the state
                             state = ProcessState::SBData(opt, current + 1);
                         },
-                        _ => {}
+                        // TODO: Write a test case for this
+                        b => {
+                            self.event_queue.push_event(TelnetEvent::Error(
+                                format!("Unexpected byte after IAC inside SB: {}", b)));
+
+                            // Copy the data to the process buffer
+                            self.append_data_to_proc_buffer(sb_data_start, current - 1);
+                            // Update the state
+                            state = ProcessState::SBData(opt, current + 1);
+                        }
                     }
-
-                    // TODO: Error: unexpected byte after IAC inside SB
-                },
-
-                // TODO: others
-                _ => {
-
                 }
             }
 
