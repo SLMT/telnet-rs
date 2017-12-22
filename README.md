@@ -2,6 +2,8 @@
 
 [![Build Status](https://travis-ci.org/SLMT/telnet-rs.svg?branch=master)](https://travis-ci.org/SLMT/telnet-rs)
 [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![crates.io](http://meritbadge.herokuapp.com/telnet)](https://crates.io/crates/telnet)
+[![API docs](https://docs.rs/telnet/badge.svg)](http://docs.rs/telnet)
 
 A simple Telnet implementation.
 
@@ -81,3 +83,4 @@ fn main() {
 
 - To reduce unnecessary data copy
 - To add coverage check
+- Add crate-level document
