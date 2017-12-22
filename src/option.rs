@@ -1,4 +1,7 @@
 
+///
+/// Telnet options
+///
 #[derive(Debug, Clone, Copy)]
 pub enum TelnetOption {
     TransmitBinary,

@@ -27,6 +27,21 @@ enum ProcessState {
     Do, Dont
 }
 
+///
+/// A telnet connection to a remote host.
+///
+/// # Examples
+/// ```rust,should_panic
+/// use telnet::Telnet;
+///
+/// let mut connection = Telnet::connect(("127.0.0.1", 23), 256)
+///         .expect("Couldn't connect to the server...");
+/// loop {
+///     let event = connection.read().expect("Read Error");
+///     println!("{:?}", event);
+/// }
+/// ```
+///
 pub struct Telnet {
     stream: TcpStream,
     event_queue: TelnetEventQueue,
@@ -39,6 +54,22 @@ pub struct Telnet {
 }
 
 impl Telnet {
+
+    ///
+    /// Opens a telnet connection to a remote host.
+    ///
+    /// `addr` is an address of the remote host. Note that a remote host usually opens port 23 for
+    /// a Telnet connection. `buf_size` is a size of the underlying buffer for processing the data
+    ///  read from the remote host.
+    ///
+    /// # Examples
+    /// ```rust,should_panic
+    /// use telnet::Telnet;
+    ///
+    /// let connection = Telnet::connect(("127.0.0.1", 23), 256)
+    ///         .expect("Couldn't connect to the server...");
+    /// ```
+    ///
     pub fn connect<A: ToSocketAddrs>(addr: A, buf_size: usize) -> io::Result<Telnet> {
         // Make sure the buffer size always >= 1
         let actual_size = if buf_size == 0 { 1 } else { buf_size };
@@ -55,6 +86,23 @@ impl Telnet {
         })
     }
 
+    ///
+    /// Reads a `TelnetEvent`.
+    ///
+    /// If there was not any queued `TelnetEvent`, it would read a chunk of data into its buffer,
+    /// extract any telnet command in the message, and queue all processed results. Otherwise, it
+    /// would take a queued `TelnetEvent` without reading data from `TcpStream`.
+    ///
+    /// # Examples
+    /// ```rust,should_panic
+    /// use telnet::Telnet;
+    ///
+    /// let mut connection = Telnet::connect(("127.0.0.1", 23), 256)
+    ///         .expect("Couldn't connect to the server...");
+    /// let event = connection.read().expect("Read Error");
+    /// println!("{:?}", event);
+    /// ```
+    ///
     pub fn read(&mut self) -> io::Result<TelnetEvent> {
         while self.event_queue.is_empty() {
             // Set stream settings
@@ -76,6 +124,23 @@ impl Telnet {
         Ok(self.event_queue.take_event().unwrap())
     }
 
+    ///
+    /// Reads a `TelnetEvent`, but the waiting time cannot exceed a given `Duration`.
+    ///
+    /// This method is similar to `read()`, but with a time limitation. If the given time was
+    /// reached, it would return `TelnetEvent::TimedOut`.
+    ///
+    /// # Examples
+    /// ```rust,should_panic
+    /// use std::time::Duration;
+    /// use telnet::Telnet;
+    ///
+    /// let mut connection = Telnet::connect(("127.0.0.1", 23), 256)
+    ///         .expect("Couldn't connect to the server...");
+    /// let event = connection.read_timeout(Duration::new(5, 0)).expect("Read Error");
+    /// println!("{:?}", event);
+    /// ```
+    ///
     pub fn read_timeout(&mut self, timeout: Duration) -> io::Result<TelnetEvent> {
         if self.event_queue.is_empty() {
             // Set stream settings
@@ -103,6 +168,22 @@ impl Telnet {
         Ok(self.event_queue.take_event().unwrap())
     }
 
+    ///
+    /// Reads a `TelnetEvent`. Return immediataly if there was no queued event and nothing to read.
+    ///
+    /// This method is a non-blocking version of `read()`. If there was no more data, it would
+    /// return `TelnetEvent::NoData`.
+    ///
+    /// # Examples
+    /// ```rust,should_panic
+    /// use telnet::Telnet;
+    ///
+    /// let mut connection = Telnet::connect(("127.0.0.1", 23), 256)
+    ///         .expect("Couldn't connect to the server...");
+    /// let event = connection.read_nonblocking().expect("Read Error");
+    /// println!("{:?}", event);
+    /// ```
+    ///
     pub fn read_nonblocking(&mut self) -> io::Result<TelnetEvent> {
         if self.event_queue.is_empty() {
             // Set stream settings
@@ -130,15 +211,71 @@ impl Telnet {
         Ok(self.event_queue.take_event().unwrap())
     }
 
+    ///
+    /// Writes a given data block to the remote host. It will double any IAC byte.
+    ///
+    /// # Examples
+    /// ```rust,should_panic
+    /// use telnet::Telnet;
+    ///
+    /// let mut connection = Telnet::connect(("127.0.0.1", 23), 256)
+    ///         .expect("Couldn't connect to the server...");
+    /// let buffer: [u8; 4] = [83, 76, 77, 84];
+    /// connection.write(&buffer).expect("Write Error");
+    /// ```
+    ///
     pub fn write(&mut self, data: &[u8]) -> io::Result<usize> {
-        self.stream.write(data)
+        let mut write_size = 0;
+
+        let mut start = 0;
+        for i in 0..data.len() {
+            if data[i] == BYTE_IAC {
+                self.stream.write(&data[start .. i + 1])?;
+                self.stream.write(&[BYTE_IAC])?;
+                write_size = write_size + (i + 1 - start);
+                start = i + 1;
+            }
+        }
+
+        if start < data.len() {
+            self.stream.write(&data[start .. data.len()])?;
+            write_size = write_size + (data.len() - start);
+        }
+
+        Ok(write_size)
     }
 
+    ///
+    /// Negotiates a telnet option with the remote host.
+    ///
+    /// # Examples
+    /// ```rust,should_panic
+    /// use telnet::{Telnet, NegotiationAction, TelnetOption};
+    ///
+    /// let mut connection = Telnet::connect(("127.0.0.1", 23), 256)
+    ///         .expect("Couldn't connect to the server...");
+    /// connection.negotiate(NegotiationAction::Will, TelnetOption::Echo);
+    /// ```
+    ///
     pub fn negotiate(&mut self, action: NegotiationAction, opt: TelnetOption) {
         let buf: &[u8] = &[BYTE_IAC, action.to_byte(), opt.to_byte()];
         self.stream.write(buf).expect("Error sending negotiation");
     }
 
+    ///
+    /// Send data for sub-negotiation with the remote host.
+    ///
+    /// # Examples
+    /// ```rust,should_panic
+    /// use telnet::{Telnet, NegotiationAction, TelnetOption};
+    ///
+    /// let mut connection = Telnet::connect(("127.0.0.1", 23), 256)
+    ///         .expect("Couldn't connect to the server...");
+    /// connection.negotiate(NegotiationAction::Do, TelnetOption::TTYPE);
+    /// let data: [u8; 1] = [1];
+    /// connection.subnegotiate(TelnetOption::TTYPE, &data);
+    /// ```
+    ///
     pub fn subnegotiate(&mut self, opt: TelnetOption, data: &[u8]) {
         let buf: &[u8] = &[BYTE_IAC, BYTE_SB, opt.to_byte()];
         self.stream.write(buf).expect("Error sending subnegotiation (START)");
@@ -147,10 +284,6 @@ impl Telnet {
 
         let buf: &[u8] = &[BYTE_IAC, BYTE_SE];
         self.stream.write(buf).expect("Error sending subnegotiation (END)");
-    }
-
-    pub fn set_debug_logging(&mut self, enabled: bool) {
-
     }
 
     fn process(&mut self) {
