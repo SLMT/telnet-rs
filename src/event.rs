@@ -6,17 +6,14 @@ use negotiation::NegotiationAction;
 
 #[derive(Debug)]
 pub enum TelnetEvent {
-    DataReceived(Box<[u8]>),
+    Data(Box<[u8]>),
     UnknownIAC(u8),
-    RemoteEnabled(TelnetOption),
-    RemoteDisabled(TelnetOption),
-    LocalShouldEnable(TelnetOption),
-    LocalShouldDisable(TelnetOption),
-    SBReceived(TelnetOption, Box<[u8]>),
+    Negotiation(NegotiationAction, TelnetOption),
+    Subnegotiation(TelnetOption, Box<[u8]>),
 
-    // Debug
-    NegotiationReceived(NegotiationAction, TelnetOption),
-    NeogitationSent(NegotiationAction, TelnetOption),
+    // Others
+    TimedOut, // When timeout happens
+    NoData, // only happens in non-blocking
 
     // Error
     ItShouldNotBeHere(String), // please contact the developer

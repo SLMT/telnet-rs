@@ -1,8 +1,5 @@
-use std::collections::HashMap;
-use std::collections::hash_map::Iter;
 
-// For debuggin and using HashMaps
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum TelnetOption {
     TransmitBinary,
     Echo,
@@ -153,67 +150,5 @@ impl TelnetOption {
             TelnetOption::EXOPL => 255,
             TelnetOption::UnknownOption(byte) => byte
         }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct OptionConfig {
-    pub local_support: bool,
-    pub allow_remote: bool
-}
-
-pub struct TelnetOptionConfigs {
-    configs: HashMap<TelnetOption, OptionConfig>,
-    default: OptionConfig
-}
-
-impl TelnetOptionConfigs {
-    pub fn new() -> TelnetOptionConfigs {
-        TelnetOptionConfigs {
-            configs: HashMap::new(),
-            default: OptionConfig {
-                local_support: false,
-                allow_remote: false
-            }
-        }
-    }
-
-    pub fn add_config(&mut self, opt: TelnetOption, local_support: bool, allow_remote: bool) {
-        self.configs.insert(opt, OptionConfig {
-            local_support: local_support,
-            allow_remote: allow_remote
-        });
-    }
-
-    pub fn set_local_supported(&mut self, opt: TelnetOption, local_support: bool) {
-        self.configs.entry(opt).or_insert(OptionConfig {
-            local_support: local_support,
-            allow_remote: false
-        });
-    }
-
-    pub fn set_remote_allowed(&mut self, opt: TelnetOption, allow_remote: bool) {
-        self.configs.entry(opt).or_insert(OptionConfig {
-            local_support: false,
-            allow_remote: allow_remote
-        });
-    }
-
-    pub fn is_local_supported(&self, opt: &TelnetOption) -> bool {
-        match self.configs.get(&opt) {
-            Some(c) => c.local_support,
-            None => self.default.local_support
-        }
-    }
-
-    pub fn is_remote_allowed(&self, opt: &TelnetOption) -> bool {
-        match self.configs.get(&opt) {
-            Some(c) => c.allow_remote,
-            None => self.default.allow_remote
-        }
-    }
-
-    pub fn iter(&self) -> Iter<TelnetOption, OptionConfig> {
-        self.configs.iter()
     }
 }
