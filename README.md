@@ -1,5 +1,8 @@
 # telnet-rs
 
+[![Build Status](https://travis-ci.org/SLMT/telnet-rs.svg?branch=master)](https://travis-ci.org/SLMT/telnet-rs)
+[![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+
 A simple Telnet implementation.
 
 ## Examples
@@ -73,3 +76,8 @@ fn main() {
     telnet.write(&buffer).expect("Read error");
 }
 ```
+
+## TODOs
+
+- To reduce unnecessary data copy
+- To add coverage check
