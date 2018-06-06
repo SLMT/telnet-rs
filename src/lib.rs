@@ -121,7 +121,12 @@ impl Telnet {
         }
 
         // Return an event
-        Ok(self.event_queue.take_event().unwrap())
+        Ok(
+            match self.event_queue.take_event() {
+                Some(x) => x,
+                None => TelnetEvent::Error("Internal Queue error".to_string())
+            }
+        )
     }
 
     ///
@@ -165,7 +170,12 @@ impl Telnet {
         }
 
         // Return an event
-        Ok(self.event_queue.take_event().unwrap())
+        Ok(
+            match self.event_queue.take_event() {
+                Some(x) => x,
+                None => TelnetEvent::Error("Internal Queue error".to_string())
+            }
+        )
     }
 
     ///
@@ -208,7 +218,13 @@ impl Telnet {
         }
 
         // Return an event
-        Ok(self.event_queue.take_event().unwrap())
+        Ok(
+            match self.event_queue.take_event() {
+                Some(x) => x,
+                None => TelnetEvent::Error("Internal Queue error".to_string())
+            }
+        )
+
     }
 
     ///
