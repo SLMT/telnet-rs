@@ -3,7 +3,9 @@ mod negotiation;
 mod option;
 mod event;
 mod byte;
+mod stream;
 
+pub use stream::Stream;
 pub use option::TelnetOption;
 pub use event::TelnetEvent;
 pub use negotiation::NegotiationAction;
@@ -43,7 +45,7 @@ enum ProcessState {
 /// ```
 ///
 pub struct Telnet {
-    stream: TcpStream,
+    stream: Box<Stream>,
     event_queue: TelnetEventQueue,
 
     // Buffer
@@ -56,7 +58,7 @@ pub struct Telnet {
 impl Telnet {
 
     ///
-    /// Opens a telnet connection to a remote host.
+    /// Opens a telnet connection to a remote host using a `TcpStream`.
     ///
     /// `addr` is an address of the remote host. Note that a remote host usually opens port 23 for
     /// a Telnet connection. `buf_size` is a size of the underlying buffer for processing the data
@@ -71,19 +73,29 @@ impl Telnet {
     /// ```
     ///
     pub fn connect<A: ToSocketAddrs>(addr: A, buf_size: usize) -> io::Result<Telnet> {
-        // Make sure the buffer size always >= 1
-        let actual_size = if buf_size == 0 { 1 } else { buf_size };
-
         let stream = TcpStream::connect(addr)?; // send the error out directly
 
-        Ok(Telnet {
+        Ok(Telnet::from_stream(Box::new(stream), buf_size))
+    }
+
+    /// Open a telnet connection to a remote host using a generic stream.
+    /// 
+    /// Communication will be made with the host using `stream`. `buf_size` is the size of the underlying
+    /// buffer for processing data from the host.
+    /// 
+    /// Use this version of the constructor if you want to provide your own stream, for example if you want
+    /// to mock out the remote host for testing purposes, or want to wrap the data the data with TLS encryption.
+    pub fn from_stream(stream: Box<Stream>, buf_size: usize) -> Telnet {
+        let actual_size = if buf_size == 0 { 1 } else { buf_size };
+
+        Telnet {
             stream: stream,
             event_queue: TelnetEventQueue::new(),
             buffer: vec![0; actual_size].into_boxed_slice(),
             buffered_size: 0,
             process_buffer: vec![0; actual_size].into_boxed_slice(),
             process_buffered_size: 0
-        })
+        }
     }
 
     ///
