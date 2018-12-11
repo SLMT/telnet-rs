@@ -338,6 +338,9 @@ impl Telnet {
                             let data_end = current;
                             let data = self.copy_buffered_data(data_start, data_end);
                             self.event_queue.push_event(TelnetEvent::Data(data));
+
+                            // Update the state
+                            data_start = current;
                         }
                     } else if current == self.buffered_size - 1 {
                         // It reaches the end of the buffer
@@ -496,5 +499,85 @@ impl Telnet {
         };
 
         Box::from(data)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Error;
+    use std::ops::Deref;
+
+    struct MockStream {
+        test_data: Vec<u8>
+    }
+
+    impl MockStream {
+        fn new(data: Vec<u8>) -> MockStream {
+            MockStream {
+                test_data: data,
+            }
+        }
+    }
+
+    impl stream::Stream for MockStream {
+        fn set_nonblocking(&self, _nonblocking: bool) -> Result<(), Error> {
+            return Ok(())
+        }
+
+        fn set_read_timeout(&self, _dur: Option<Duration>) -> Result<(), Error> {
+            return Ok(())
+        }
+    }
+
+    impl io::Read for MockStream {
+        fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+            let mut offset = 0;
+            while offset < buf.len() && offset < self.test_data.len() {
+                buf[offset] = self.test_data[offset];
+                offset += 1;
+            }
+            return Ok(offset);
+        }
+    }
+
+    impl io::Write for MockStream {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            return Ok(buf.len())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            return Ok(())
+        }
+    }
+
+    #[test]
+    fn escapes_double_iac_correctly() {
+        let stream = Box::new(MockStream::new(vec!(0x40, 0x5a, 0xff, 0xff, 0x31, 0x34)));
+
+        let mut telnet = Telnet::from_stream(stream, 6);
+
+        let expected_bytes_1: [u8;2] = [0x40, 0x5a];
+        let expected_bytes_2: [u8;3] = [0xff, 0x31, 0x34];
+
+        let event_1 = telnet.read_nonblocking().unwrap();
+        match event_1 {
+            TelnetEvent::Data(buffer) => {
+                assert_eq!(buffer.deref(), &expected_bytes_1);
+            },
+            _ => {
+                assert!(false);
+            }
+        }
+
+        let event_2 = telnet.read_nonblocking().unwrap();
+        match event_2 {
+            TelnetEvent::Data(buffer) => {
+                assert_eq!(buffer.deref(), &expected_bytes_2);
+            },
+            _ => {
+                assert!(false);
+            }
+        }
     }
 }
