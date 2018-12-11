@@ -1,7 +1,7 @@
 [package]
 name = "telnet"
 description = "A simple implementation of telnet protocol."
-version = "0.1.2"
+version = "0.1.3"
 authors = ["SLMT <sam123456777@gmail.com>"]
 readme = "README.md"
 homepage = "https://github.com/SLMT/telnet-rs"
