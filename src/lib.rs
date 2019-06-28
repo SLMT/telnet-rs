@@ -9,6 +9,11 @@ mod zcstream;
 #[cfg(feature = "zcstream")]
 mod zlibstream;
 
+pub use stream::Stream;
+#[cfg(feature = "zcstream")]
+pub use zlibstream::ZlibStream;
+#[cfg(feature = "zcstream")]
+pub use zcstream::ZCStream;
 pub use option::TelnetOption;
 pub use event::TelnetEvent;
 pub use negotiation::NegotiationAction;
@@ -20,13 +25,11 @@ use std::time::Duration;
 
 use event::TelnetEventQueue;
 use byte::*;
-#[cfg(feature = "zcstream")]
-use zlibstream::ZlibStream;
 
 #[cfg(feature = "zcstream")]
-pub type Stream = zcstream::ZCStream;
+type TStream = zcstream::ZCStream;
 #[cfg(not(feature = "zcstream"))]
-pub type Stream = stream::Stream;
+type TStream = stream::Stream;
 
 #[derive(Debug)]
 enum ProcessState {
@@ -55,7 +58,7 @@ enum ProcessState {
 /// ```
 ///
 pub struct Telnet {
-    stream: Box<Stream>,
+    stream: Box<TStream>,
     event_queue: TelnetEventQueue,
 
     // Buffer
@@ -107,7 +110,7 @@ impl Telnet {
     /// 
     /// Use this version of the constructor if you want to provide your own stream, for example if you want
     /// to mock out the remote host for testing purposes, or want to wrap the data the data with TLS encryption.
-    pub fn from_stream(stream: Box<Stream>, buf_size: usize) -> Telnet {
+    pub fn from_stream(stream: Box<TStream>, buf_size: usize) -> Telnet {
         let actual_size = if buf_size == 0 { 1 } else { buf_size };
 
         Telnet {

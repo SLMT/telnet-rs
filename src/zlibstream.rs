@@ -12,6 +12,15 @@ enum ZlibStreamSwitch<T> {
     Encoded(ZlibDecoder<T>)
 }
 
+///
+/// A wrapper which can enable and disable zlib decompression for downstream at runtime.
+///
+/// # Examples
+///
+/// ```
+/// let mut stream = ZlibStream::from_stream(old_stream);
+/// stream.begin_zlib();
+/// ```
 pub struct ZlibStream<T> {
     stream: ZlibStreamSwitch<T>
 }
