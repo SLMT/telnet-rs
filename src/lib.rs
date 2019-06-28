@@ -4,8 +4,11 @@ mod option;
 mod event;
 mod byte;
 mod stream;
+#[cfg(feature = "zcstream")]
+mod zcstream;
+#[cfg(feature = "zcstream")]
+mod zlibstream;
 
-pub use stream::Stream;
 pub use option::TelnetOption;
 pub use event::TelnetEvent;
 pub use negotiation::NegotiationAction;
@@ -17,6 +20,13 @@ use std::time::Duration;
 
 use event::TelnetEventQueue;
 use byte::*;
+#[cfg(feature = "zcstream")]
+use zlibstream::ZlibStream;
+
+#[cfg(feature = "zcstream")]
+pub type Stream = zcstream::ZCStream;
+#[cfg(not(feature = "zcstream"))]
+pub type Stream = stream::Stream;
 
 #[derive(Debug)]
 enum ProcessState {
@@ -75,9 +85,21 @@ impl Telnet {
     pub fn connect<A: ToSocketAddrs>(addr: A, buf_size: usize) -> io::Result<Telnet> {
         let stream = TcpStream::connect(addr)?; // send the error out directly
 
-        Ok(Telnet::from_stream(Box::new(stream), buf_size))
+        #[cfg(feature = "zcstream")]
+        return Ok(Telnet::from_stream(Box::new(ZlibStream::from_stream(stream)), buf_size));
+        #[cfg(not(feature = "zcstream"))]
+        return Ok(Telnet::from_stream(Box::new(stream), buf_size));
     }
 
+    #[cfg(feature = "zcstream")]
+    pub fn begin_zlib(&mut self) {
+        self.stream.begin_zlib()
+    }
+
+    #[cfg(feature = "zcstream")]
+    pub fn end_zlib(&mut self) {
+        self.stream.end_zlib()
+    }
     /// Open a telnet connection to a remote host using a generic stream.
     /// 
     /// Communication will be made with the host using `stream`. `buf_size` is the size of the underlying
