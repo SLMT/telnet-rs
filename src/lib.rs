@@ -1,4 +1,23 @@
 
+//! #### MCCP2
+//! A feature of some telnet servers is `MCCP2` which allows the downstream data to be compressed.
+//! To use this, first enable the `zcstream` [rust feature](https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section) for this crate.
+//! Then in the code deal with the relevant events, and switch the zlib when appropriate.
+//!
+//! Basic usage example:
+//! ```
+//! match event {
+//! 	TelnetEvent::Data(buffer) => {
+//! 		println!("{}", &std::str::from_utf8(&(*buffer)).unwrap());
+//! 	},
+//! 	TelnetEvent::Negotiation(NegotiationAction::Will, TelnetOption::Compress2) => {
+//! 		telnet.negotiate(NegotiationAction::Do, TelnetOption::Compress2);
+//! 	},
+//! 	TelnetEvent::Subnegotiation(TelnetOption::Compress2, _) => {
+//! 		telnet.begin_zlib();
+//! 	}
+//! }
+//! ```
 mod negotiation;
 mod option;
 mod event;
@@ -57,25 +76,6 @@ enum ProcessState {
 /// }
 /// ```
 ///
-/// # MCCP2
-/// A feature of some telnet servers is `MCCP2` which allows the downstream data to be compressed.
-/// To use this, first enable the `zcstream` [rust feature](https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section) for this crate.
-/// Then in the code deal with the relevant events, and switch the zlib when appropriate.
-///
-/// Basic usage example:
-/// ```
-/// match event {
-/// 	TelnetEvent::Data(buffer) => {
-/// 		println!("{}", &std::str::from_utf8(&(*buffer)).unwrap());
-/// 	},
-/// 	TelnetEvent::Negotiation(NegotiationAction::Will, TelnetOption::Compress2) => {
-/// 		telnet.negotiate(NegotiationAction::Do, TelnetOption::Compress2);
-/// 	},
-/// 	TelnetEvent::Subnegotiation(TelnetOption::Compress2, _) => {
-/// 		telnet.begin_zlib();
-/// 	}
-/// }
-/// ```
 pub struct Telnet {
     stream: Box<TStream>,
     event_queue: TelnetEventQueue,
