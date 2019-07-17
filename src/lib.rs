@@ -5,7 +5,7 @@
 //! Then in the code deal with the relevant events, and switch the zlib when appropriate.
 //!
 //! Basic usage example:
-//! ```
+//! ```ignore
 //! match event {
 //! 	TelnetEvent::Data(buffer) => {
 //! 		println!("{}", &std::str::from_utf8(&(*buffer)).unwrap());
