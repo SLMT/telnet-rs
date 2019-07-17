@@ -1,11 +1,38 @@
 
+//! #### MCCP2
+//! A feature of some telnet servers is `MCCP2` which allows the downstream data to be compressed.
+//! To use this, first enable the `zcstream` [rust feature](https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section) for this crate.
+//! Then in the code deal with the relevant events, and switch the zlib when appropriate.
+//!
+//! Basic usage example:
+//! ```
+//! match event {
+//! 	TelnetEvent::Data(buffer) => {
+//! 		println!("{}", &std::str::from_utf8(&(*buffer)).unwrap());
+//! 	},
+//! 	TelnetEvent::Negotiation(NegotiationAction::Will, TelnetOption::Compress2) => {
+//! 		telnet.negotiate(NegotiationAction::Do, TelnetOption::Compress2);
+//! 	},
+//! 	TelnetEvent::Subnegotiation(TelnetOption::Compress2, _) => {
+//! 		telnet.begin_zlib();
+//! 	}
+//! }
+//! ```
 mod negotiation;
 mod option;
 mod event;
 mod byte;
 mod stream;
+#[cfg(feature = "zcstream")]
+mod zcstream;
+#[cfg(feature = "zcstream")]
+mod zlibstream;
 
 pub use stream::Stream;
+#[cfg(feature = "zcstream")]
+pub use zlibstream::ZlibStream;
+#[cfg(feature = "zcstream")]
+pub use zcstream::ZCStream;
 pub use option::TelnetOption;
 pub use event::TelnetEvent;
 pub use negotiation::NegotiationAction;
@@ -17,6 +44,11 @@ use std::time::Duration;
 
 use event::TelnetEventQueue;
 use byte::*;
+
+#[cfg(feature = "zcstream")]
+type TStream = zcstream::ZCStream;
+#[cfg(not(feature = "zcstream"))]
+type TStream = stream::Stream;
 
 #[derive(Debug)]
 enum ProcessState {
@@ -45,7 +77,7 @@ enum ProcessState {
 /// ```
 ///
 pub struct Telnet {
-    stream: Box<Stream>,
+    stream: Box<TStream>,
     event_queue: TelnetEventQueue,
 
     // Buffer
@@ -75,9 +107,21 @@ impl Telnet {
     pub fn connect<A: ToSocketAddrs>(addr: A, buf_size: usize) -> io::Result<Telnet> {
         let stream = TcpStream::connect(addr)?; // send the error out directly
 
-        Ok(Telnet::from_stream(Box::new(stream), buf_size))
+        #[cfg(feature = "zcstream")]
+        return Ok(Telnet::from_stream(Box::new(ZlibStream::from_stream(stream)), buf_size));
+        #[cfg(not(feature = "zcstream"))]
+        return Ok(Telnet::from_stream(Box::new(stream), buf_size));
     }
 
+    #[cfg(feature = "zcstream")]
+    pub fn begin_zlib(&mut self) {
+        self.stream.begin_zlib()
+    }
+
+    #[cfg(feature = "zcstream")]
+    pub fn end_zlib(&mut self) {
+        self.stream.end_zlib()
+    }
     /// Open a telnet connection to a remote host using a generic stream.
     /// 
     /// Communication will be made with the host using `stream`. `buf_size` is the size of the underlying
@@ -85,7 +129,7 @@ impl Telnet {
     /// 
     /// Use this version of the constructor if you want to provide your own stream, for example if you want
     /// to mock out the remote host for testing purposes, or want to wrap the data the data with TLS encryption.
-    pub fn from_stream(stream: Box<Stream>, buf_size: usize) -> Telnet {
+    pub fn from_stream(stream: Box<TStream>, buf_size: usize) -> Telnet {
         let actual_size = if buf_size == 0 { 1 } else { buf_size };
 
         Telnet {
