@@ -1,4 +1,3 @@
-
 //! #### MCCP2
 //! A feature of some telnet servers is `MCCP2` which allows the downstream data to be compressed.
 //! To use this, first enable the `zcstream` [rust feature](https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section) for this crate.
