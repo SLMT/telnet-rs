@@ -68,7 +68,7 @@ fn main() {
 ```rust
 extern crate telnet;
 
-use telnet::{Telnet};
+use telnet::Telnet;
 
 fn main() {
     let mut telnet = Telnet::connect(("ptt.cc", 23), 256)
@@ -81,6 +81,6 @@ fn main() {
 
 ## TODOs
 
-- To reduce unnecessary data copy
-- To add coverage check
-- Add crate-level document
+- reduce unnecessary data copy
+- add coverage check
+- add crate-level documentation
