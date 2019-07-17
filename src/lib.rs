@@ -45,9 +45,9 @@ use event::TelnetEventQueue;
 use byte::*;
 
 #[cfg(feature = "zcstream")]
-type TStream = zcstream::ZCStream;
+type TStream = dyn zcstream::ZCStream;
 #[cfg(not(feature = "zcstream"))]
-type TStream = stream::Stream;
+type TStream = dyn stream::Stream;
 
 #[derive(Debug)]
 enum ProcessState {
@@ -132,7 +132,7 @@ impl Telnet {
         let actual_size = if buf_size == 0 { 1 } else { buf_size };
 
         Telnet {
-            stream: stream,
+            stream,
             event_queue: TelnetEventQueue::new(),
             buffer: vec![0; actual_size].into_boxed_slice(),
             buffered_size: 0,
@@ -301,16 +301,16 @@ impl Telnet {
         let mut start = 0;
         for i in 0..data.len() {
             if data[i] == BYTE_IAC {
-                self.stream.write(&data[start .. i + 1])?;
-                self.stream.write(&[BYTE_IAC])?;
-                write_size = write_size + (i + 1 - start);
+                self.stream.write_all(&data[start..=i])?;
+                self.stream.write_all(&[BYTE_IAC])?;
+                write_size += i + 1 - start;
                 start = i + 1;
             }
         }
 
         if start < data.len() {
-            self.stream.write(&data[start .. data.len()])?;
-            write_size = write_size + (data.len() - start);
+            self.stream.write_all(&data[start .. data.len()])?;
+            write_size += data.len() - start;
         }
 
         Ok(write_size)
@@ -330,7 +330,7 @@ impl Telnet {
     ///
     pub fn negotiate(&mut self, action: NegotiationAction, opt: TelnetOption) {
         let buf: &[u8] = &[BYTE_IAC, action.to_byte(), opt.to_byte()];
-        self.stream.write(buf).expect("Error sending negotiation");
+        self.stream.write_all(buf).expect("Error sending negotiation");
     }
 
     ///
@@ -349,12 +349,12 @@ impl Telnet {
     ///
     pub fn subnegotiate(&mut self, opt: TelnetOption, data: &[u8]) {
         let buf: &[u8] = &[BYTE_IAC, BYTE_SB, opt.to_byte()];
-        self.stream.write(buf).expect("Error sending subnegotiation (START)");
+        self.stream.write_all(buf).expect("Error sending subnegotiation (START)");
 
-        self.stream.write(data).expect("Error sending subnegotiation (DATA)");
+        self.stream.write_all(data).expect("Error sending subnegotiation (DATA)");
 
         let buf: &[u8] = &[BYTE_IAC, BYTE_SE];
-        self.stream.write(buf).expect("Error sending subnegotiation (END)");
+        self.stream.write_all(buf).expect("Error sending subnegotiation (END)");
     }
 
     fn process(&mut self) {

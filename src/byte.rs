@@ -1,4 +1,3 @@
-
 pub const BYTE_IAC: u8 = 255;   // interpret as command:
 pub const BYTE_DONT: u8 = 254;  // you are not to use option
 pub const BYTE_DO: u8 = 253;    // please, you use option
