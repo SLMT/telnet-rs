@@ -1,157 +1,77 @@
-
-///
-/// Telnet options
-///
-#[derive(Debug, Clone, Copy)]
-pub enum TelnetOption {
-    TransmitBinary,
-    Echo,
-    Reconnection,
-    SuppressGoAhead,
-    ApproxMessageSizeNeg,
-    Status,
-    TimingMark,
-    RCTE,
-    OutLineWidth,
-    OutPageSize,
-    NAOCRD,
-    NAOHTS,
-    NAOHTD,
-    NAOFFD,
-    NAOVTS,
-    NAOVTD,
-    NAOLFD,
-    XASCII,
-    Logout,
-    ByteMacro,
-    DET,
-    SUPDUP,
-    SUPDUPOutput,
-    SNDLOC,
-    TTYPE,
-    EOR,
-    TUID,
-    OUTMRK,
-    TTYLOC,
-    OPT3270Regime,
-    X3PAD,
-    NAWS,
-    TSPEED,
-    LFLOW,
-    Linemode,
-    XDISPLOC,
-    Environment,
-    Authentication,
-    Encryption,
-    NewEnvironment,
-    MSSP,
-    Compress,
-    Compress2,
-    ZMP,
-    EXOPL,
-    UnknownOption(u8)
-}
-
-impl TelnetOption {
-    pub fn parse(byte: u8) -> TelnetOption {
-        match byte {
-            0 => TelnetOption::TransmitBinary,
-            1 => TelnetOption::Echo,
-            2 => TelnetOption::Reconnection,
-            3 => TelnetOption::SuppressGoAhead,
-            4 => TelnetOption::ApproxMessageSizeNeg,
-            5 => TelnetOption::Status,
-            6 => TelnetOption::TimingMark,
-            7 => TelnetOption::RCTE,
-            8 => TelnetOption::OutLineWidth,
-            9 => TelnetOption::OutPageSize,
-            10 => TelnetOption::NAOCRD,
-            11 => TelnetOption::NAOHTS,
-            12 => TelnetOption::NAOHTD,
-            13 => TelnetOption::NAOFFD,
-            14 => TelnetOption::NAOVTS,
-            15 => TelnetOption::NAOVTD,
-            16 => TelnetOption::NAOLFD,
-            17 => TelnetOption::XASCII,
-            18 => TelnetOption::Logout,
-            19 => TelnetOption::ByteMacro,
-            20 => TelnetOption::DET,
-            21 => TelnetOption::SUPDUP,
-            22 => TelnetOption::SUPDUPOutput,
-            23 => TelnetOption::SNDLOC,
-            24 => TelnetOption::TTYPE,
-            25 => TelnetOption::EOR,
-            26 => TelnetOption::TUID,
-            27 => TelnetOption::OUTMRK,
-            28 => TelnetOption::TTYLOC,
-            29 => TelnetOption::OPT3270Regime,
-            30 => TelnetOption::X3PAD,
-            31 => TelnetOption::NAWS,
-            32 => TelnetOption::TSPEED,
-            33 => TelnetOption::LFLOW,
-            34 => TelnetOption::Linemode,
-            35 => TelnetOption::XDISPLOC,
-            36 => TelnetOption::Environment,
-            37 => TelnetOption::Authentication,
-            38 => TelnetOption::Encryption,
-            39 => TelnetOption::NewEnvironment,
-            70 => TelnetOption::MSSP,
-            85 => TelnetOption::Compress,
-            86 => TelnetOption::Compress2,
-            93 => TelnetOption::ZMP,
-            255 => TelnetOption::EXOPL,
-            byte => TelnetOption::UnknownOption(byte)
+/// A macro to reduce the code duplication in the definition of TelnetOption
+macro_rules! telnet_option {
+    ($($byt:expr => $tno:ident),+) => {
+        ///
+        /// Telnet options
+        ///
+        #[derive(Debug, Clone, Copy)]
+        pub enum TelnetOption {
+            $($tno,)+
+            UnknownOption(u8),
         }
-    }
 
-    pub fn to_byte(&self) -> u8 {
-        match *self {
-            TelnetOption::TransmitBinary => 0,
-            TelnetOption::Echo => 1,
-            TelnetOption::Reconnection => 2,
-            TelnetOption::SuppressGoAhead => 3,
-            TelnetOption::ApproxMessageSizeNeg => 4,
-            TelnetOption::Status => 5,
-            TelnetOption::TimingMark => 6,
-            TelnetOption::RCTE => 7,
-            TelnetOption::OutLineWidth => 8,
-            TelnetOption::OutPageSize => 9,
-            TelnetOption::NAOCRD => 10,
-            TelnetOption::NAOHTS => 11,
-            TelnetOption::NAOHTD => 12,
-            TelnetOption::NAOFFD => 13,
-            TelnetOption::NAOVTS => 14,
-            TelnetOption::NAOVTD => 15,
-            TelnetOption::NAOLFD => 16,
-            TelnetOption::XASCII => 17,
-            TelnetOption::Logout => 18,
-            TelnetOption::ByteMacro => 19,
-            TelnetOption::DET => 20,
-            TelnetOption::SUPDUP => 21,
-            TelnetOption::SUPDUPOutput => 22,
-            TelnetOption::SNDLOC => 23,
-            TelnetOption::TTYPE => 24,
-            TelnetOption::EOR => 25,
-            TelnetOption::TUID => 26,
-            TelnetOption::OUTMRK => 27,
-            TelnetOption::TTYLOC => 28,
-            TelnetOption::OPT3270Regime => 29,
-            TelnetOption::X3PAD => 30,
-            TelnetOption::NAWS => 31,
-            TelnetOption::TSPEED => 32,
-            TelnetOption::LFLOW => 33,
-            TelnetOption::Linemode => 34,
-            TelnetOption::XDISPLOC => 35,
-            TelnetOption::Environment => 36,
-            TelnetOption::Authentication => 37,
-            TelnetOption::Encryption => 38,
-            TelnetOption::NewEnvironment => 39,
-            TelnetOption::MSSP => 70,
-            TelnetOption::Compress => 85,
-            TelnetOption::Compress2 => 86,
-            TelnetOption::ZMP => 93,
-            TelnetOption::EXOPL => 255,
-            TelnetOption::UnknownOption(byte) => byte
+        impl TelnetOption {
+            pub fn parse(byte: u8) -> TelnetOption {
+                match byte {
+                    $($byt => TelnetOption::$tno,)+
+                    byte => TelnetOption::UnknownOption(byte)
+                }
+            }
+
+            pub fn to_byte(&self) -> u8 {
+                match *self {
+                    $(TelnetOption::$tno => $byt,)+
+                    TelnetOption::UnknownOption(byte) => byte
+                }
+            }
         }
     }
 }
+
+telnet_option!(
+    0 => TransmitBinary,
+    1 => Echo,
+    2 => Reconnection,
+    3 => SuppressGoAhead,
+    4 => ApproxMessageSizeNeg,
+    5 => Status,
+    6 => TimingMark,
+    7 => RCTE,
+    8 => OutLineWidth,
+    9 => OutPageSize,
+    10 => NAOCRD,
+    11 => NAOHTS,
+    12 => NAOHTD,
+    13 => NAOFFD,
+    14 => NAOVTS,
+    15 => NAOVTD,
+    16 => NAOLFD,
+    17 => XASCII,
+    18 => Logout,
+    19 => ByteMacro,
+    20 => DET,
+    21 => SUPDUP,
+    22 => SUPDUPOutput,
+    23 => SNDLOC,
+    24 => TTYPE,
+    25 => EOR,
+    26 => TUID,
+    27 => OUTMRK,
+    28 => TTYLOC,
+    29 => OPT3270Regime,
+    30 => X3PAD,
+    31 => NAWS,
+    32 => TSPEED,
+    33 => LFLOW,
+    34 => Linemode,
+    35 => XDISPLOC,
+    36 => Environment,
+    37 => Authentication,
+    38 => Encryption,
+    39 => NewEnvironment,
+    70 => MSSP,
+    85 => Compress,
+    86 => Compress2,
+    93 => ZMP,
+    255 => EXOPL
+);
