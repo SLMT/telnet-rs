@@ -596,7 +596,10 @@ mod tests {
 
     #[test]
     fn escapes_double_iac_correctly() {
-        let stream = Box::new(MockStream::new(vec!(0x40, 0x5a, 0xff, 0xff, 0x31, 0x34)));
+        let stream = MockStream::new(vec!(0x40, 0x5a, 0xff, 0xff, 0x31, 0x34));
+        #[cfg(feature = "zcstream")]
+        let stream = ZlibStream::from_stream(stream);
+        let stream = Box::new(stream);
 
         let mut telnet = Telnet::from_stream(stream, 6);
 
