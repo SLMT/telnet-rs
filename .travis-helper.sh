@@ -10,4 +10,8 @@ eval cargo test $CARGO_FLAGS || exit $?
 
 echo
 echo "=== run clippy ..."
-rustup component add clippy-preview && eval cargo clippy $CARGO_FLAGS || true
+if rustup component add clippy-preview; then
+    eval cargo clippy $CARGO_FLAGS
+else
+    echo -e '\033[1m\033[33mWARNING\033[0m: clippy not found'
+fi
