@@ -4,7 +4,7 @@ macro_rules! telnet_option {
         ///
         /// Telnet options
         ///
-        #[derive(Debug, Clone, Copy)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
         pub enum TelnetOption {
             $($tno,)+
             UnknownOption(u8),
