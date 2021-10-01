@@ -1,4 +1,4 @@
-use stream::Stream;
+use crate::stream::Stream;
 
 /// Stream with ability to be upgraded to zlib stream.
 pub trait ZCStream: Stream {
