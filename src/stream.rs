@@ -1,7 +1,10 @@
-use std::time::Duration;
-use std::io::{Read, Write, Result};
-use std::net::TcpStream;
+use std::{
+    io::{Read, Result, Write},
+    net::TcpStream,
+    time::Duration,
+};
 
+#[allow(clippy::missing_errors_doc)]
 pub trait Stream: Read + Write {
     fn set_nonblocking(&self, nonblocking: bool) -> Result<()>;
     fn set_read_timeout(&self, dur: Option<Duration>) -> Result<()>;
@@ -9,10 +12,10 @@ pub trait Stream: Read + Write {
 
 impl Stream for TcpStream {
     fn set_nonblocking(&self, nonblocking: bool) -> Result<()> {
-        TcpStream::set_nonblocking(self, nonblocking)
+        self.set_nonblocking(nonblocking)
     }
 
     fn set_read_timeout(&self, dur: Option<Duration>) -> Result<()> {
-        TcpStream::set_read_timeout(self, dur)
+        self.set_read_timeout(dur)
     }
 }

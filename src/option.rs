@@ -1,9 +1,9 @@
-/// A macro to reduce the code duplication in the definition of TelnetOption
-macro_rules! telnet_option {
+#![allow(clippy::must_use_candidate)]
+
+// A macro to reduce the code duplication in the definition of TelnetOption
+macro_rules! telnet_options {
     ($($byt:expr => $tno:ident),+) => {
-        ///
         /// Telnet options
-        ///
         #[derive(Debug, Clone, Copy)]
         pub enum TelnetOption {
             $($tno,)+
@@ -18,7 +18,7 @@ macro_rules! telnet_option {
                 }
             }
 
-            pub fn to_byte(&self) -> u8 {
+            pub fn as_byte(&self) -> u8 {
                 match *self {
                     $(TelnetOption::$tno => $byt,)+
                     TelnetOption::UnknownOption(byte) => byte
@@ -28,7 +28,7 @@ macro_rules! telnet_option {
     }
 }
 
-telnet_option!(
+telnet_options!(
     0 => TransmitBinary,
     1 => Echo,
     2 => Reconnection,
