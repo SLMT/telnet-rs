@@ -50,7 +50,7 @@ use error::Error::*;
 use event::TelnetEventQueue;
 use std::{
     io::{self, ErrorKind, Read, Write},
-    net::{TcpStream, ToSocketAddrs},
+    net::{SocketAddr, TcpStream, ToSocketAddrs},
     time::Duration,
 };
 
@@ -116,6 +116,23 @@ impl Telnet {
     /// - Tcp connection failure
     pub fn connect<A: ToSocketAddrs>(addr: A, buf_size: usize) -> io::Result<Telnet> {
         let stream = TcpStream::connect(addr)?; // send the error out directly
+
+        #[cfg(feature = "zcstream")]
+        return Ok(Telnet::from_stream(
+            Box::new(ZlibStream::from_stream(stream)),
+            buf_size,
+        ));
+        #[cfg(not(feature = "zcstream"))]
+        return Ok(Telnet::from_stream(Box::new(stream), buf_size));
+    }
+    /// Like [`Telnet::connect`] but can be passed a timeout [`Duration`]. Uses a [`TcpStream::connect_timeout`] under the hood
+    /// and so can only be passed a single address of type [`SocketAddr`]
+    pub fn connect_timeout(
+        addr: SocketAddr,
+        buf_size: usize,
+        timeout: Duration,
+    ) -> io::Result<Telnet> {
+        let stream = TcpStream::connect_timeout(&addr, timeout)?; // send the error out directly
 
         #[cfg(feature = "zcstream")]
         return Ok(Telnet::from_stream(
