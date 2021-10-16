@@ -133,7 +133,7 @@ impl Telnet {
     /// use std::net::{IpAddr, Ipv4Addr, SocketAddr};
     /// use std::str::FromStr;
     /// use std::time::Duration;
-    /// let address = SocketAddr::new(IpAddr::V4(Ipv4Addr::from_str("127.0.0.1")?), 23);
+    /// let address = SocketAddr::new(IpAddr::V4(Ipv4Addr::from_str("127.0.0.1").expect("Invalid address")), 23);
     /// let telnet = Telnet::connect_timeout(&address, 256, Duration::from_secs(2))
     ///                                          .expect("Couldn't connect to the server...");
     /// ```
