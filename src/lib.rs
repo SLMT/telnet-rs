@@ -125,14 +125,28 @@ impl Telnet {
         #[cfg(not(feature = "zcstream"))]
         return Ok(Telnet::from_stream(Box::new(stream), buf_size));
     }
-    /// Like [`Telnet::connect`] but can be passed a timeout [`Duration`]. Uses a [`TcpStream::connect_timeout`] under the hood
+    /// Like [`Telnet::connect`] but must be passed a timeout [`Duration`]. Uses a [`TcpStream::connect_timeout`] under the hood
     /// and so can only be passed a single address of type [`SocketAddr`]
+    /// # Examples
+    /// ```rust,should_panic
+    /// use telnet::Telnet;
+    /// use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+    /// use std::str::FromStr;
+    /// use std::time::Duration;
+    /// let address = SocketAddr::new(IpAddr::V4(Ipv4Addr::from_str("127.0.0.1")?), 23);
+    /// let telnet = Telnet::connect_timeout(&address, 256, Duration::from_secs(2))
+    ///                                          .expect("Couldn't connect to the server...");
+    /// ```
+    ///
+    /// # Errors
+    /// - Tcp connection failure
+    /// - I/O timeout error
     pub fn connect_timeout(
-        addr: SocketAddr,
+        addr: &SocketAddr,
         buf_size: usize,
         timeout: Duration,
     ) -> io::Result<Telnet> {
-        let stream = TcpStream::connect_timeout(&addr, timeout)?; // send the error out directly
+        let stream = TcpStream::connect_timeout(addr, timeout)?; // send the error out directly
 
         #[cfg(feature = "zcstream")]
         return Ok(Telnet::from_stream(
