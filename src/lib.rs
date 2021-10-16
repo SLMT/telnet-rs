@@ -125,17 +125,18 @@ impl Telnet {
         #[cfg(not(feature = "zcstream"))]
         return Ok(Telnet::from_stream(Box::new(stream), buf_size));
     }
-    /// Like [`Telnet::connect`] but must be passed a timeout [`Duration`]. Uses a [`TcpStream::connect_timeout`] under the hood
-    /// and so can only be passed a single address of type [`SocketAddr`]
+    /// Opens a telnet connection to a remote host using a TcpStream with a timeout [`Duration`]. Uses a [`TcpStream::connect_timeout`] under the hood
+    /// and so can only be passed a single address of type [`SocketAddr`], and passing a zero [`Duration`] results in an error.
     /// # Examples
     /// ```rust,should_panic
     /// use telnet::Telnet;
     /// use std::net::{IpAddr, Ipv4Addr, SocketAddr};
     /// use std::str::FromStr;
     /// use std::time::Duration;
-    /// let address = SocketAddr::new(IpAddr::V4(Ipv4Addr::from_str("127.0.0.1").expect("Invalid address")), 23);
+    /// let address = SocketAddr::new(IpAddr::V4(Ipv4Addr::from_str("127.0.0.1")
+    ///                                 .expect("Invalid address")), 23);
     /// let telnet = Telnet::connect_timeout(&address, 256, Duration::from_secs(2))
-    ///                                          .expect("Couldn't connect to the server...");
+    ///                                 .expect("Couldn't connect to the server...");
     /// ```
     ///
     /// # Errors
