@@ -55,9 +55,9 @@ use std::{
 };
 
 #[cfg(feature = "zcstream")]
-type TStream = dyn zcstream::ZCStream;
+type TStream = dyn zcstream::ZCStream + Send + Sync;
 #[cfg(not(feature = "zcstream"))]
-type TStream = dyn stream::Stream;
+type TStream = dyn stream::Stream + Send + Sync;
 
 #[derive(Debug)]
 enum ProcessState {
