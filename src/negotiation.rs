@@ -3,7 +3,7 @@
 use crate::byte::{BYTE_DO, BYTE_DONT, BYTE_WILL, BYTE_WONT};
 
 /// Actions for telnet negotiation.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum Action {
     Will,
     Wont,
