@@ -4,3 +4,5 @@
 - Seth Morabito (sethm) <https://github.com/sethm>
 - SaadiSave <https://github.com/SaadiSave>
 - Zylatis <https://github.com/Zylatis>
+- Alain Emilia Anna Zscheile <https://github.com/fogti>
+- Wagner <https://github.com/mwnDK1402>
