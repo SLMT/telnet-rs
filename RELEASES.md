@@ -1,3 +1,9 @@
+# Version 0.2.3
+
+- Improve the documentation of `TelnetOption` variants ([#25], by [tpoliaw])
+
+[#25]: https://github.com/SLMT/telnet-rs/pull/25
+
 # Version 0.2.2
 
 - Derived common traits for public enums ([#24], by [mwnDK1402])
@@ -56,3 +62,4 @@
 [Zylatis]: https://github.com/Zylatis
 [fogti]: https://github.com/fogti
 [mwnDK1402]: https://github.com/mwnDK1402
+[tpoliaw]: https://github.com/tpoliaw

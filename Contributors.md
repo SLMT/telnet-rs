@@ -6,3 +6,4 @@
 - Zylatis <https://github.com/Zylatis>
 - Alain Emilia Anna Zscheile <https://github.com/fogti>
 - Wagner <https://github.com/mwnDK1402>
+- Peter Holloway <https://github.com/tpoliaw>
