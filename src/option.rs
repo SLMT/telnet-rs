@@ -254,7 +254,7 @@ telnet_options!(
     ///
     /// From [RFC 946](https://www.rfc-editor.org/rfc/rfc946.html)
     28 => TTYLOC,
-    /// 3729 Regime
+    /// 3270 Regime
     ///
     /// Allows a telnet server running VM or MVS to negotiate with the telnet
     /// client on the type of data stream (3270 or NVT ASCII) which both sides
