@@ -1,3 +1,9 @@
+# Version 0.2.4
+
+- Fix a typo in the document ([#26], by [blackbit42])
+
+[#26]: https://github.com/SLMT/telnet-rs/pull/26
+
 # Version 0.2.3
 
 - Improve the documentation of `TelnetOption` variants ([#25], by [tpoliaw])
@@ -63,3 +69,4 @@
 [fogti]: https://github.com/fogti
 [mwnDK1402]: https://github.com/mwnDK1402
 [tpoliaw]: https://github.com/tpoliaw
+[blackbit42]: https://github.com/blackbit42

@@ -7,3 +7,4 @@
 - Alain Emilia Anna Zscheile <https://github.com/fogti>
 - Wagner <https://github.com/mwnDK1402>
 - Peter Holloway <https://github.com/tpoliaw>
+- blackbit42 <https://github.com/blackbit42>
