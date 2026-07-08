@@ -8,3 +8,4 @@
 - Wagner <https://github.com/mwnDK1402>
 - Peter Holloway <https://github.com/tpoliaw>
 - blackbit42 <https://github.com/blackbit42>
+- Arvid Gerstmann <https://github.com/Leandros>

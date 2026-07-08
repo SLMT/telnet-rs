@@ -1,3 +1,9 @@
+# Version 0.2.5
+
+- Add requirement for `Send + Sync` to `dyn Stream` ([#23], by [Leandros])
+
+[#23]: https://github.com/SLMT/telnet-rs/pull/23
+
 # Version 0.2.4
 
 - Fix a typo in the document ([#26], by [blackbit42])
@@ -70,3 +76,4 @@
 [mwnDK1402]: https://github.com/mwnDK1402
 [tpoliaw]: https://github.com/tpoliaw
 [blackbit42]: https://github.com/blackbit42
+[Leandros]: https://github.com/Leandros
